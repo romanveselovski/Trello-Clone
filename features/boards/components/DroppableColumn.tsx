@@ -36,26 +36,27 @@ export function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`w-72 sm:w-80 flex-shrink-0 ${
+      className={`w-72 sm:w-80 flex-shrink-0 h-full min-h-0 flex flex-col ${
         isOver ? "bg-blue-50 rounded-lg" : ""
       }`}
     >
       <div
-        className={`bg-white rounded-lg shadow-sm border ${
+        className={`bg-white rounded-lg shadow-sm border flex flex-col h-full min-h-0 overflow-hidden ${
           isOver ? "ring-2 ring-blue-300" : ""
         }`}
       >
-        <div className="p-3 sm:p-4 border-b">
-          <div className="flex items-start gap-2">
-            <div className="flex items-start gap-2 min-w-0 flex-1">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug break-words">
-                {column.title}
-              </h3>
-              <Badge variant="secondary" className="flex-shrink-0 mt-0.5">
-                {column.tasks.length}
-              </Badge>
-            </div>
-            <div className="flex items-center flex-shrink-0 -mr-1.5 -mt-1">
+        <div className="h-14 px-3 border-b bg-gray-50/80 flex items-center flex-shrink-0">
+          <div className="flex items-center gap-2 w-full min-w-0">
+            <h3
+              className="font-semibold text-gray-900 text-sm sm:text-base truncate min-w-0 flex-1"
+              title={column.title}
+            >
+              {column.title}
+            </h3>
+            <Badge variant="secondary" className="flex-shrink-0 tabular-nums">
+              {column.tasks.length}
+            </Badge>
+            <div className="flex items-center flex-shrink-0 -mr-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -75,9 +76,9 @@ export function DroppableColumn({
             </div>
           </div>
         </div>
-        <div className="p-2">
-          {children}
-          <div className="w-full">
+        <div className="p-2 flex-1 min-h-0 overflow-y-auto flex flex-col">
+          <div className="flex-1">{children}</div>
+          <div className="w-full flex-shrink-0">
             <Button
               variant="ghost"
               className="cursor-pointer w-full mt-3 text-gray-500 hover:text-gray-700"

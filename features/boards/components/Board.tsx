@@ -172,6 +172,7 @@ export default function Board() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveTask(null);
     if (!over) return;
 
     const taskId = active.id as string;
@@ -208,6 +209,10 @@ export default function Board() {
         }
       }
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
   };
 
   const handleCreateColumn = async (e: React.FormEvent) => {
@@ -299,7 +304,7 @@ export default function Board() {
 
   return (
     <MemberProfilesProvider boardId={id}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
         <Navbar
           boardTitle={board?.title}
           onEditBoard={() => {
@@ -316,29 +321,34 @@ export default function Board() {
           )}
         />
 
-        <main className="mx-auto w-full max-w-[100vw] px-2 py-4 sm:px-4 sm:py-6 overflow-x-hidden">
-          <BoardHeader
-            totalTasks={columns?.reduce(
-              (sum, column) => sum + column.tasks.length,
-              0
-            )}
-            loading={loading}
-            onCreateColumn={() => setIsCreatingColumn(true)}
-            onCreateTask={() => setIsCreatingTask(true)}
-          />
+        <main className="flex-1 min-h-0 mx-auto w-full max-w-[100vw] px-2 pt-4 sm:px-4 sm:pt-6 pb-2 flex flex-col overflow-hidden">
+          <div className="flex-shrink-0">
+            <BoardHeader
+              totalTasks={columns?.reduce(
+                (sum, column) => sum + column.tasks.length,
+                0
+              )}
+              loading={loading}
+              onCreateColumn={() => setIsCreatingColumn(true)}
+              onCreateTask={() => setIsCreatingTask(true)}
+            />
+          </div>
 
           <DndContext
             sensors={sensors}
             collisionDetection={rectIntersection}
+            autoScroll={false}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
-            <div className="min-w-0">
+            <div className="flex-1 min-h-0 min-w-0">
               <BoardColumns
                 boardId={id}
                 columns={filteredColumns}
                 loading={loading}
+                isDragging={!!activeTask}
                 onCreateTask={handleCreateTask}
                 onEditColumn={handleEditColumn}
                 onDeleteColumn={requestDeleteColumn}
