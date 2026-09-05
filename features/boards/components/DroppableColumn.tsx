@@ -9,6 +9,7 @@ import { CreateTaskDialog } from "./CreateTaskDialog";
 import { useState } from "react";
 
 interface DroppableColumnProps {
+  boardId: string;
   column: ColumnWithTasks;
   children: React.ReactNode;
   onCreateTask: (task: any) => Promise<void>;
@@ -17,6 +18,7 @@ interface DroppableColumnProps {
 }
 
 export function DroppableColumn({
+  boardId,
   column,
   children,
   onCreateTask,
@@ -34,7 +36,7 @@ export function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`w-full lg:flex-shrink-0 lg:w-80 ${
+      className={`w-72 sm:w-80 flex-shrink-0 ${
         isOver ? "bg-blue-50 rounded-lg" : ""
       }`}
     >
@@ -44,31 +46,31 @@ export function DroppableColumn({
         }`}
       >
         <div className="p-3 sm:p-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 min-w-0">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+          <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 min-w-0 flex-1">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-snug break-words">
                 {column.title}
               </h3>
-              <Badge variant="secondary" className="flex-shrink-0">
+              <Badge variant="secondary" className="flex-shrink-0 mt-0.5">
                 {column.tasks.length}
               </Badge>
             </div>
-            <div>
+            <div className="flex items-center flex-shrink-0 -mr-1.5 -mt-1">
               <Button
                 variant="ghost"
-                size="sm"
-                className="flex-shrink-0 cursor-pointer"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
                 onClick={() => onDeleteColumn(column.id)}
               >
-                <Trash2 className="text-red-400" />
+                <Trash2 className="h-4 w-4 text-red-400" />
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
-                className="flex-shrink-0 cursor-pointer"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
                 onClick={() => onEditColumn(column)}
               >
-                <MoreHorizontal />
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -90,6 +92,7 @@ export function DroppableColumn({
             onOpenChange={setIsCreatingTask}
             onSubmit={handleCreateTask}
             columnId={column.id}
+            boardId={boardId}
           />
         </div>
       </div>

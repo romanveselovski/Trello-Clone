@@ -1,4 +1,4 @@
-import { Board, Column, Task } from "./supabase/models";
+import { Board, BoardMember, Column, Task } from "./supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
@@ -15,6 +15,7 @@ export const boardService = {
   },
 
   async getBoards(supabase: SupabaseClient, userId: string): Promise<Board[]> {
+    // RLS returns owned + shared boards; no user_id filter
     const { data, error } = await supabase
       .from("boards")
       .select(
@@ -22,27 +23,51 @@ export const boardService = {
         *,
         columns (
           tasks ( count )
+        ),
+        board_members (
+          user_id,
+          email,
+          role
         )
       `
       )
-      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    return (data || []).map((board: Board & { columns?: Array<{ tasks?: Array<{ count: number }> }> }) => {
-      const totalTasks =
-        board.columns?.reduce(
-          (sum: number, col: { tasks?: Array<{ count: number }> }) => sum + (col.tasks?.[0]?.count || 0),
-          0
-        ) || 0;
+    return (data || []).map(
+      (
+        board: Board & {
+          columns?: Array<{ tasks?: Array<{ count: number }> }>;
+          board_members?: Array<{
+            user_id: string | null;
+            email: string;
+            role: "owner" | "member";
+          }>;
+        }
+      ) => {
+        const totalTasks =
+          board.columns?.reduce(
+            (sum: number, col: { tasks?: Array<{ count: number }> }) =>
+              sum + (col.tasks?.[0]?.count || 0),
+            0
+          ) || 0;
 
-      const { columns, ...boardWithoutColumns } = board;
-      return {
-        ...boardWithoutColumns,
-        totalTasks,
-      };
-    });
+        const members = board.board_members || [];
+        const myMembership = members.find((m) => m.user_id === userId);
+        const { columns, board_members, ...boardWithoutColumns } = board;
+
+        return {
+          ...boardWithoutColumns,
+          totalTasks,
+          memberCount: members.length,
+          isShared: members.length > 1 || board.user_id !== userId,
+          myRole:
+            myMembership?.role ||
+            (board.user_id === userId ? "owner" : "member"),
+        };
+      }
+    );
   },
 
   async createBoard(
@@ -187,6 +212,30 @@ export const taskService = {
     return data;
   },
 
+  async updateTask(
+    supabase: SupabaseClient,
+    taskId: string,
+    updates: Partial<
+      Pick<
+        Task,
+        "title" | "description" | "assignee" | "due_date" | "priority"
+      >
+    >
+  ): Promise<Task> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async deleteTask(supabase: SupabaseClient, taskId: string) {
     const { data, error } = await supabase
       .from("tasks")
@@ -226,6 +275,7 @@ export const boardDataService = {
       description?: string;
       color?: string;
       userId: string;
+      email?: string;
     }
   ) {
     const board = await boardService.createBoard(supabase, {
@@ -234,6 +284,17 @@ export const boardDataService = {
       color: boardData.color || "bg-blue-500",
       user_id: boardData.userId,
     });
+
+    // Owner row is usually created by DB trigger; keep a safe fallback
+    try {
+      await memberService.addOwner(supabase, {
+        boardId: board.id,
+        userId: boardData.userId,
+        email: boardData.email || `${boardData.userId}@owner.local`,
+      });
+    } catch {
+      // ignore duplicate owner from trigger
+    }
 
     const defaultColumns = [
       { title: "To Do", sort_order: 0 },
@@ -253,5 +314,95 @@ export const boardDataService = {
     );
 
     return board;
+  },
+};
+
+export const memberService = {
+  async listMembers(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<BoardMember[]> {
+    const { data, error } = await supabase
+      .from("board_members")
+      .select("*")
+      .eq("board_id", boardId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addOwner(
+    supabase: SupabaseClient,
+    input: { boardId: string; userId: string; email: string }
+  ): Promise<BoardMember> {
+    const { data, error } = await supabase
+      .from("board_members")
+      .insert({
+        board_id: input.boardId,
+        user_id: input.userId,
+        email: input.email.toLowerCase(),
+        role: "owner",
+        invited_by: input.userId,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async inviteByEmail(
+    supabase: SupabaseClient,
+    input: {
+      boardId: string;
+      email: string;
+      invitedBy: string;
+      userId?: string | null;
+    }
+  ): Promise<BoardMember> {
+    const email = input.email.trim().toLowerCase();
+    const { data, error } = await supabase
+      .from("board_members")
+      .upsert(
+        {
+          board_id: input.boardId,
+          email,
+          user_id: input.userId || null,
+          role: "member",
+          invited_by: input.invitedBy,
+        },
+        { onConflict: "board_id,email" }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async claimPendingInvites(
+    supabase: SupabaseClient,
+    userId: string,
+    email: string
+  ) {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return;
+
+    const { error } = await supabase
+      .from("board_members")
+      .update({ user_id: userId })
+      .is("user_id", null)
+      .ilike("email", normalized);
+
+    if (error) throw error;
+  },
+
+  async removeMember(supabase: SupabaseClient, memberId: string) {
+    const { error } = await supabase
+      .from("board_members")
+      .delete()
+      .eq("id", memberId);
+    if (error) throw error;
   },
 };

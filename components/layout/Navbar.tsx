@@ -7,6 +7,7 @@ import {
   Filter,
   MoreHorizontal,
   Trello,
+  Users,
 } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
@@ -19,6 +20,7 @@ interface NavbarProps {
   boardTitle?: string;
   onEditBoard?: () => void;
   onFilterClick?: () => void;
+  onInviteClick?: () => void;
   filterCount?: number;
   className?: string;
 }
@@ -27,13 +29,15 @@ const Navbar = ({
   boardTitle,
   onEditBoard,
   onFilterClick,
+  onInviteClick,
   filterCount,
   className,
 }: NavbarProps) => {
   const { isSignedIn, user } = useUser();
   const pathname = usePathname();
 
-  const isDashboardPage = pathname === "/dashboard";
+  const isDashboardPage =
+    pathname === "/dashboard" || pathname.startsWith("/dashboard/");
   const isBoardPage = pathname.startsWith("/boards/");
 
   if (isDashboardPage) {
@@ -93,6 +97,17 @@ const Navbar = ({
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              {onInviteClick && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onInviteClick}
+                  className="text-xs sm:text-sm cursor-pointer"
+                >
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Team</span>
+                </Button>
+              )}
               {onFilterClick && (
                 <Button
                   variant="outline"

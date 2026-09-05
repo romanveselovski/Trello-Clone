@@ -90,7 +90,7 @@ export default function Dashboard() {
     filters.taskCount.max !== null ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
-  if (error) {
+  if (error && boards.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -110,6 +110,11 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="container mx-auto px-4 py-6 sm:py-8">
+        {error && (
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <DashboardHeader onCreateBoard={handleCreateBoard} loading={loading} />
 
         <StatsSection boards={boards} loading={loading} />

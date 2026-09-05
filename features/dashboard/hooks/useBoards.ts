@@ -1,6 +1,6 @@
 "use client";
 
-import { boardDataService, boardService } from "@/lib/services";
+import { boardDataService, boardService, memberService } from "@/lib/services";
 import { Board } from "@/lib/supabase/models";
 import { useSupabase } from "@/providers/SupabaseProvider";
 import { useUser } from "@clerk/nextjs";
@@ -15,9 +15,22 @@ export function useBoards() {
 
   useEffect(() => {
     if (user && isLoaded && supabase) {
-      loadBoards();
+      claimAndLoad();
     }
-  }, [user, isLoaded]);
+  }, [user, isLoaded, supabase]);
+
+  async function claimAndLoad() {
+    if (!user) return;
+    const email = user.primaryEmailAddress?.emailAddress;
+    if (email) {
+      try {
+        await memberService.claimPendingInvites(supabase!, user.id, email);
+      } catch (err) {
+        console.log("claim invites", err);
+      }
+    }
+    await loadBoards();
+  }
 
   async function loadBoards() {
     if (!user) return;
@@ -29,7 +42,11 @@ export function useBoards() {
       setBoards(data);
     } catch (err) {
       console.log(err);
-      setError(err instanceof Error ? err.message : "Failed to load boards.");
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to load boards.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -43,16 +60,24 @@ export function useBoards() {
     if (!user) throw new Error("User not authenticated");
 
     try {
+      setError(null);
       const newBoard = await boardDataService.createBoardWithDefaultColumns(
         supabase!,
         {
           ...boardData,
           userId: user.id,
+          email: user.primaryEmailAddress?.emailAddress,
         }
       );
       setBoards((prev) => [newBoard, ...prev]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create board.");
+      console.log(err);
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to create board.";
+      setError(message);
+      throw err;
     }
   }
 

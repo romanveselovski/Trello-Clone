@@ -4,9 +4,9 @@ export function BoardColumnsSkeleton() {
   const taskCounts = [0, 2, 1, 0];
 
   return (
-    <div className="flex flex-col lg:flex-row lg:space-x-6 lg:overflow-x-auto lg:pb-6 lg:px-2 lg:-mx-2 lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-gray-100 lg:[&::-webkit-scrollbar-thumb]:bg-gray-300 lg:[&::-webkit-scrollbar-thumb]:rounded-full space-y-4 lg:space-y-0">
+    <div className="flex flex-row gap-4 sm:gap-6 overflow-x-auto overscroll-x-contain pb-4 px-1 -mx-1 [scrollbar-gutter:stable] [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-500">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="w-full lg:flex-shrink-0 lg:w-80 mt-1">
+        <div key={index} className="w-72 sm:w-80 flex-shrink-0 mt-1">
           <Card className="py-3 gap-2">
             <CardHeader className="border-b py-0">
               <div className="flex items-center justify-between">

@@ -7,6 +7,19 @@ export interface Board {
   created_at: string;
   updated_at: string;
   totalTasks?: number;
+  isShared?: boolean;
+  memberCount?: number;
+  myRole?: "owner" | "member";
+}
+
+export interface BoardMember {
+  id: string;
+  board_id: string;
+  user_id: string | null;
+  email: string;
+  role: "owner" | "member";
+  invited_by: string | null;
+  created_at: string;
 }
 
 export interface Column {

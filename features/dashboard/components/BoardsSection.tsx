@@ -118,9 +118,23 @@ export function BoardsSection({
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className={`w-4 h-4 rounded ${board.color} `} />
-                    <Badge variant="secondary" className="text-xs">
-                      New
-                    </Badge>
+                    <div className="flex gap-1">
+                      {board.isShared && (
+                        <Badge variant="outline" className="text-xs">
+                          Shared
+                        </Badge>
+                      )}
+                      {board.myRole === "member" && (
+                        <Badge variant="secondary" className="text-xs">
+                          Team
+                        </Badge>
+                      )}
+                      {board.memberCount && board.memberCount > 1 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {board.memberCount} people
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
@@ -163,9 +177,23 @@ export function BoardsSection({
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className={`w-4 h-4 rounded ${board.color} `} />
-                      <Badge variant="secondary" className="text-xs">
-                        New
-                      </Badge>
+                      <div className="flex gap-1">
+                        {board.isShared && (
+                          <Badge variant="outline" className="text-xs">
+                            Shared
+                          </Badge>
+                        )}
+                        {board.myRole === "member" && (
+                          <Badge variant="secondary" className="text-xs">
+                            Team
+                          </Badge>
+                        )}
+                        {board.memberCount && board.memberCount > 1 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {board.memberCount} people
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">

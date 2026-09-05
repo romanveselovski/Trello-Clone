@@ -192,6 +192,30 @@ export function useBoard(boardId: string) {
     }
   }
 
+  async function updateRealTask(
+    taskId: string,
+    updates: Partial<
+      Pick<
+        Task,
+        "title" | "description" | "assignee" | "due_date" | "priority"
+      >
+    >
+  ) {
+    try {
+      const updated = await taskService.updateTask(supabase!, taskId, updates);
+      setColumns((prev) =>
+        prev.map((col) => ({
+          ...col,
+          tasks: col.tasks.map((t) => (t.id === taskId ? { ...t, ...updated } : t)),
+        }))
+      );
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update task.");
+      throw err;
+    }
+  }
+
   async function deleteRealColumn(columnId: string) {
     const prevColumns = structuredClone(columns);
     try {
@@ -215,6 +239,7 @@ export function useBoard(boardId: string) {
     createColumn,
     updateColumn,
     deleteRealTask,
+    updateRealTask,
     deleteRealColumn,
   };
 }

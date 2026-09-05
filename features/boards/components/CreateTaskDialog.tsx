@@ -12,12 +12,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BaseDialog } from "@/components/common/BaseDialog";
+import { useState } from "react";
+import { AssigneeSelect } from "./AssigneeSelect";
 
 interface CreateTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   columnId?: string;
+  boardId?: string;
 }
 
 export function CreateTaskDialog({
@@ -25,11 +28,21 @@ export function CreateTaskDialog({
   onOpenChange,
   onSubmit,
   columnId,
+  boardId,
 }: CreateTaskDialogProps) {
+  const [assignee, setAssignee] = useState("");
+  const [priority, setPriority] = useState("medium");
+
   return (
     <BaseDialog
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        if (!open) {
+          setAssignee("");
+          setPriority("medium");
+        }
+        onOpenChange(open);
+      }}
       title="Create New Task"
       description="Add a new task to the board"
     >
@@ -52,33 +65,37 @@ export function CreateTaskDialog({
             rows={3}
           />
         </div>
-        <div className="space-y-2">
-          <label>Assignee</label>
-          <Input
-            id="assignee"
-            name="assignee"
-            placeholder="Who should do this?"
-            required
+        {boardId ? (
+          <AssigneeSelect
+            boardId={boardId}
+            value={assignee}
+            onChange={setAssignee}
           />
-        </div>
+        ) : (
+          <div className="space-y-2">
+            <label>Assignee</label>
+            <Input
+              id="assignee"
+              name="assignee"
+              placeholder="Who should do this?"
+            />
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Priority</Label>
-          <Select name="priority" defaultValue="medium">
+          <Select value={priority} onValueChange={setPriority}>
             <SelectTrigger className="w-full cursor-pointer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {["low", "medium", "high"].map((priority, key) => (
-                <SelectItem
-                  key={key}
-                  value={priority}
-                  className="cursor-pointer"
-                >
-                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              {["low", "medium", "high"].map((p) => (
+                <SelectItem key={p} value={p} className="cursor-pointer">
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <input type="hidden" name="priority" value={priority} />
         </div>
         <div className="space-y-2">
           <Label>Due Date</Label>
@@ -86,7 +103,9 @@ export function CreateTaskDialog({
         </div>
         {columnId && <input type="hidden" name="columnId" value={columnId} />}
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="submit" className="cursor-pointer">Create Task</Button>
+          <Button type="submit" className="cursor-pointer">
+            Create Task
+          </Button>
         </div>
       </form>
     </BaseDialog>

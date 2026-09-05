@@ -26,10 +26,15 @@ import { CreateColumnDialog } from "./CreateColumnDialog";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { EditColumnDialog } from "./EditColumnDialog";
 import { DeleteColumnDialog } from "./DeleteColumnDialog";
+import { InviteMembersDialog } from "./InviteMembersDialog";
+import { TaskDetailDialog } from "./TaskDetailDialog";
 import { useBoard } from "../hooks/useBoard";
+import { useUser } from "@clerk/nextjs";
+import { MemberProfilesProvider } from "../context/MemberProfilesContext";
 
 export default function Board() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useUser();
   const {
     board,
     columns,
@@ -41,6 +46,7 @@ export default function Board() {
     createColumn,
     updateColumn,
     deleteRealTask,
+    updateRealTask,
     deleteRealColumn,
   } = useBoard(id);
 
@@ -48,7 +54,10 @@ export default function Board() {
   const [newTitle, setNewTitle] = useState("");
   const [newColor, setNewColor] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
   const [isCreatingColumn, setIsCreatingColumn] = useState(false);
   const [isEditingColumn, setIsEditingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
@@ -276,7 +285,7 @@ export default function Board() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="container mx-auto px-2 py-4 sm:px-4 sm:py-6">
+        <main className="mx-auto w-full max-w-[100vw] px-2 py-4 sm:px-4 sm:py-6 overflow-x-hidden">
           <ErrorState
             title="Error loading board"
             message={error}
@@ -289,7 +298,7 @@ export default function Board() {
   }
 
   return (
-    <>
+    <MemberProfilesProvider boardId={id}>
       <div className="min-h-screen bg-gray-50">
         <Navbar
           boardTitle={board?.title}
@@ -298,6 +307,7 @@ export default function Board() {
             setNewColor(board?.color ?? "");
             setIsEditingTitle(true);
           }}
+          onInviteClick={() => setIsInviteOpen(true)}
           onFilterClick={() => setIsFilterOpen(true)}
           filterCount={Object.values(filters).reduce(
             (count, v) =>
@@ -306,7 +316,7 @@ export default function Board() {
           )}
         />
 
-        <main className="container mx-auto px-2 py-4 sm:px-4 sm:py-6">
+        <main className="mx-auto w-full max-w-[100vw] px-2 py-4 sm:px-4 sm:py-6 overflow-x-hidden">
           <BoardHeader
             totalTasks={columns?.reduce(
               (sum, column) => sum + column.tasks.length,
@@ -324,15 +334,22 @@ export default function Board() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            <BoardColumns
-              columns={filteredColumns}
-              loading={loading}
-              onCreateTask={handleCreateTask}
-              onEditColumn={handleEditColumn}
-              onDeleteColumn={requestDeleteColumn}
-              onDeleteTask={requestDeleteTask}
-              onCreateColumn={() => setIsCreatingColumn(true)}
-            />
+            <div className="min-w-0">
+              <BoardColumns
+                boardId={id}
+                columns={filteredColumns}
+                loading={loading}
+                onCreateTask={handleCreateTask}
+                onEditColumn={handleEditColumn}
+                onDeleteColumn={requestDeleteColumn}
+                onDeleteTask={requestDeleteTask}
+                onOpenTask={(task) => {
+                  setViewingTask(task);
+                  setIsTaskDetailOpen(true);
+                }}
+                onCreateColumn={() => setIsCreatingColumn(true)}
+              />
+            </div>
             <DragOverlay>
               {activeTask ? <TaskOverlay task={activeTask} /> : null}
             </DragOverlay>
@@ -362,6 +379,7 @@ export default function Board() {
         isOpen={isCreatingTask}
         onOpenChange={setIsCreatingTask}
         onSubmit={handleCreateTask}
+        boardId={id}
       />
 
       <CreateColumnDialog
@@ -396,6 +414,42 @@ export default function Board() {
         onOpenChange={setIsDeletingColumn}
         onConfirm={confirmDeleteColumn}
       />
-    </>
+
+      <TaskDetailDialog
+        isOpen={isTaskDetailOpen}
+        onOpenChange={(open) => {
+          setIsTaskDetailOpen(open);
+          if (!open) setViewingTask(null);
+        }}
+        task={
+          viewingTask
+            ? columns
+                .flatMap((c) => c.tasks)
+                .find((t) => t.id === viewingTask.id) || viewingTask
+            : null
+        }
+        boardId={id}
+        columnTitle={
+          viewingTask
+            ? columns.find((c) =>
+                c.tasks.some((t) => t.id === viewingTask.id)
+              )?.title
+            : undefined
+        }
+        onSave={async (taskId, updates) => {
+          await updateRealTask(taskId, updates);
+        }}
+        onDelete={requestDeleteTask}
+      />
+
+      {board && (
+        <InviteMembersDialog
+          isOpen={isInviteOpen}
+          onOpenChange={setIsInviteOpen}
+          boardId={board.id}
+          isOwner={board.user_id === user?.id}
+        />
+      )}
+    </MemberProfilesProvider>
   );
 }
